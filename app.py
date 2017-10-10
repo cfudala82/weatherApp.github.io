@@ -1,17 +1,17 @@
+#!/usr/bin/env python3
 import os
-
 import tornado.ioloop
 import tornado.web
 import tornado.log
+import json
+
+import requests
 
 from jinja2 import \
   Environment, PackageLoader, select_autoescape
 
-
-PORT = int(os.environ.get('PORT', '8888'))
-
 ENV = Environment(
-  loader=PackageLoader('myapp', 'templates'),
+  loader=PackageLoader('weather', 'templates'),
   autoescape=select_autoescape(['html', 'xml'])
 )
 
@@ -21,37 +21,30 @@ class TemplateHandler(tornado.web.RequestHandler):
     self.write(template.render(**context))
 
 class MainHandler(TemplateHandler):
-  def get(self):
-    names = self.get_query_arguments('name')
-    self.set_header(
-      'Cache-Control',
-      'no-store, no-cache, must-revalidate, max-age=0')
-    self.render_template("hello.html", {'names': names, 'amount': 42.55})
+  def get (self):
+    self.render_template('weatherForm.html', {})
 
-class PageHandler(TemplateHandler):
-  def get(self, page):
-    self.set_header(
-      'Cache-Control',
-      'no-store, no-cache, must-revalidate, max-age=0')
-    self.render_template(page, {})
+  def post (self):
+    pass
+    # get city name
+    city = self.get_body_argument('city')
+    # lookup the weather
+    r = requests.get('http://api.openweathermap.org/data/2.5/weather?q={}&APPID=472c94261251d797427becfeecbcefae'.format(city))
+    print(r)
+    data = json.loads(r.text)
+    print(data)
+    # render the weather data
+    self.render_template("weatherForm.html", {'data': data})
 
 def make_app():
   return tornado.web.Application([
     (r"/", MainHandler),
-    (r"/page/(.*)", PageHandler),
-    (
-      r"/static/(.*)",
-      tornado.web.StaticFileHandler,
-      {'path': 'static'}
-    ),
+    (r"/static/(.*)",
+      tornado.web.StaticFileHandler, {'path': 'static'}),
   ], autoreload=True)
 
 if __name__ == "__main__":
-  tornado.log.enable_pretty_logging()
-
-  app = make_app()
-  app.listen(PORT, print('Server started on localhost: ' + str(PORT)))
-  tornado.ioloop.IOLoop.current().start()
-
-# request = YouTooHandler(request_info)
-# request.get()
+    tornado.log.enable_pretty_logging()
+    app = make_app()
+    app.listen(int(os.environ.get('PORT', '8080')))
+    tornado.ioloop.IOLoop.current().start()
