@@ -1,0 +1,6 @@
+tornado==4.5.2
+Jinja2==2.9.6
+tornado-alf==0.4.4
+python-dotenv==0.7.1
+boto3==1.4.7
+requests==2.18.4
